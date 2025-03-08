@@ -137,8 +137,8 @@ func main() {
 				Strengths:              strengths,
 				ImprovementSuggestions: improvementSuggestions,
 			},
-			CreatedAt:   createdAt.Format(time.RFC3339),
-			CompletedAt: time.Now().Format(time.RFC3339), // Simulate completion time
+			CreatedAt:   createdAt,
+			CompletedAt: time.Now(), // Simulate completion time
 		}
 
 		c.JSON(http.StatusOK, response)
