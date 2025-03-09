@@ -40,7 +40,7 @@ type AdDetailResponse struct {
 
 // PriorityQueueTask represents the task in priority queue
 type PriorityQueueTask struct {
-	AdID      string    `json:"adId"`
+	ItemID    string    `json:"itemID"`
 	CreatedAt time.Time `json:"createdAt"`
 	Priority  int       `json:"priority"`
 	RetryAt   time.Time `json:"retryAt"`

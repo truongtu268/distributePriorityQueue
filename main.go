@@ -13,6 +13,8 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/lib/pq"
 	_ "github.com/lib/pq"
+
+	"your_project_path/db" // Import the generated db package
 )
 
 var ctx = context.Background()
@@ -27,11 +29,13 @@ func main() {
 
 	// Initialize PostgreSQL connection
 	connStr := "user=youruser password=yourpassword dbname=yourdb sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	dbConn, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	defer dbConn.Close()
+
+	queries := db.New(dbConn) // Initialize the queries object
 
 	r.POST("/ads", func(c *gin.Context) {
 		var newAd model.AdRequest
@@ -47,12 +51,18 @@ func main() {
 		status := "queued"
 		createdAt := time.Now().Format(time.RFC3339)
 
-		// Store the ad in the database using a raw SQL query
-		query := `
-			INSERT INTO ads (title, description, genre, target_audience, visual_elements, call_to_action, duration, priority, created_at)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-		`
-		_, err := db.Exec(query, newAd.Title, newAd.Description, newAd.Genre, pq.Array(newAd.TargetAudience), pq.Array(newAd.VisualElements), newAd.CallToAction, newAd.Duration, newAd.Priority, createdAt)
+		// Store the ad in the database using sqlc generated code
+		err := queries.CreateAd(ctx, db.CreateAdParams{
+			Title:          newAd.Title,
+			Description:    newAd.Description,
+			Genre:          newAd.Genre,
+			TargetAudience: pq.Array(newAd.TargetAudience),
+			VisualElements: pq.Array(newAd.VisualElements),
+			CallToAction:   newAd.CallToAction,
+			Duration:       newAd.Duration,
+			Priority:       newAd.Priority,
+			CreatedAt:      createdAt,
+		})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to store ad in database"})
 			return
@@ -90,15 +100,8 @@ func main() {
 	r.GET("/ads/:id", func(c *gin.Context) {
 		adId := c.Param("id")
 
-		// Fetch ad details from the database
-		var ad model.AdRequest
-		var createdAt time.Time
-		query := `
-			SELECT title, description, genre, target_audience, visual_elements, call_to_action, duration, priority, created_at
-			FROM ads
-			WHERE id = $1
-		`
-		err := db.QueryRow(query, adId).Scan(&ad.Title, &ad.Description, &ad.Genre, pq.Array(&ad.TargetAudience), pq.Array(&ad.VisualElements), &ad.CallToAction, &ad.Duration, &ad.Priority, &createdAt)
+		// Fetch ad details from the database using sqlc generated code
+		ad, err := queries.GetAdById(ctx, adId)
 		if err != nil {
 			if err == sql.ErrNoRows {
 				c.JSON(http.StatusNotFound, gin.H{"error": "Ad not found"})
@@ -137,7 +140,7 @@ func main() {
 				Strengths:              strengths,
 				ImprovementSuggestions: improvementSuggestions,
 			},
-			CreatedAt:   createdAt,
+			CreatedAt:   ad.CreatedAt,
 			CompletedAt: time.Now(), // Simulate completion time
 		}
 
@@ -153,13 +156,13 @@ func main() {
 			return
 		}
 
-		// Update the analysis data in the database
-		query := `
-			UPDATE ads
-			SET effectiveness_score = $1, strengths = $2, improvement_suggestions = $3
-			WHERE id = $4
-		`
-		_, err := db.Exec(query, analysis.EffectivenessScore, pq.Array(analysis.Strengths), pq.Array(analysis.ImprovementSuggestions), adId)
+		// Update the analysis data in the database using sqlc generated code
+		err := queries.UpdateAdAnalysis(ctx, db.UpdateAdAnalysisParams{
+			EffectivenessScore:     analysis.EffectivenessScore,
+			Strengths:              pq.Array(analysis.Strengths),
+			ImprovementSuggestions: pq.Array(analysis.ImprovementSuggestions),
+			ID:                     adId,
+		})
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update ad analysis in database"})
 			return
