@@ -15,21 +15,31 @@ type ICreateAdRepo struct {
 }
 
 // CreateAd provides a mock function with given fields: ctx, dto
-func (_m *ICreateAdRepo) CreateAd(ctx context.Context, dto model.AdRequest) error {
+func (_m *ICreateAdRepo) CreateAd(ctx context.Context, dto model.AdRequest) (model.AdResponse, error) {
 	ret := _m.Called(ctx, dto)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAd")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, model.AdRequest) error); ok {
+	var r0 model.AdResponse
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, model.AdRequest) (model.AdResponse, error)); ok {
+		return rf(ctx, dto)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, model.AdRequest) model.AdResponse); ok {
 		r0 = rf(ctx, dto)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(model.AdResponse)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, model.AdRequest) error); ok {
+		r1 = rf(ctx, dto)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // NewICreateAdRepo creates a new instance of ICreateAdRepo. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/jackc/pgx/v5/pgtype"
 	"time"
 
 	"github.com/truongtu268/distributePriorityQueue/db"
@@ -13,17 +12,18 @@ import (
 	"github.com/truongtu268/distributePriorityQueue/model"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type ICreateAdRepo interface {
-	CreateAd(ctx context.Context, dto model.AdRequest) error
+	CreateAd(ctx context.Context, dto model.AdRequest) (model.AdResponse, error)
 }
 
 type CreateAdRepo struct {
 	queries db.AdCreateQuery
 }
 
-func (r *CreateAdRepo) CreateAd(ctx context.Context, dto model.AdRequest) error {
+func (r *CreateAdRepo) CreateAd(ctx context.Context, dto model.AdRequest) (model.AdResponse, error) {
 	adID := uuid.New()
 	arg := query.CreateAdParams{
 		ID: adID.String(),
@@ -57,7 +57,17 @@ func (r *CreateAdRepo) CreateAd(ctx context.Context, dto model.AdRequest) error 
 	} else {
 		arg.Priority = pgtype.Int4{Int32: 1, Valid: true}
 	}
-	return r.queries.CreateAd(ctx, arg)
+	err := r.queries.CreateAd(ctx, arg)
+	if err != nil {
+		return model.AdResponse{}, err
+	}
+
+	return model.AdResponse{
+		AdID:      adID.String(),
+		Status:    arg.Status.String,
+		CreatedAt: arg.CreatedAt.Time,
+		Priority:  int(arg.Priority.Int32),
+	}, nil
 }
 
 func NewCreateAdRepo(q query.DBTX) *CreateAdRepo {
@@ -93,6 +103,7 @@ func NewAdQueueRepo(q query.DBTX) *AdQueueRepo {
 
 type IAdCronjobRepo interface {
 	ProcessTask(ctx context.Context, adID string) error
+	InQueueTask(ctx context.Context, adID string) error
 	AddAdAnalysis(ctx context.Context, adID string, analysis model.AdAnalysis) error
 	GetAdByID(ctx context.Context, adID string) (query.Ad, error)
 	RetryAd(ctx context.Context, adID string, retryTime int32) error
@@ -107,6 +118,17 @@ func (r *AdCronjobRepo) ProcessTask(ctx context.Context, adID string) error {
 		ID: adID,
 		Status: pgtype.Text{
 			String: string(model.ProcessingStatus),
+			Valid:  true,
+		},
+	}
+	return r.queries.UpdateAdStatus(ctx, arg)
+}
+
+func (r *AdCronjobRepo) InQueueTask(ctx context.Context, adID string) error {
+	arg := query.UpdateAdStatusParams{
+		ID: adID,
+		Status: pgtype.Text{
+			String: string(model.QueuedStatus),
 			Valid:  true,
 		},
 	}

@@ -36,7 +36,7 @@ func TestCreateAdRepo_CreateAd(t *testing.T) {
 			Priority:       2,
 		}
 
-		err := repo.CreateAd(context.Background(), dto)
+		_, err := repo.CreateAd(context.Background(), dto)
 		assert.NoError(t, err)
 		// Additional assertions can be added here to verify the behavior of the mock
 	})
@@ -59,7 +59,7 @@ func TestCreateAdRepo_CreateAd(t *testing.T) {
 			Priority:       2,
 		}
 
-		err := repo.CreateAd(context.Background(), dto)
+		_, err := repo.CreateAd(context.Background(), dto)
 		assert.Error(t, err)
 		// Additional assertions can be added here to verify the behavior of the mock
 	})

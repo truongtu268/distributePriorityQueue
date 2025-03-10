@@ -16,10 +16,10 @@ type AdRequest struct {
 
 // AdResponse represents the structure of the response for an ad submission
 type AdResponse struct {
-	AdID      string `json:"adId"`
-	Status    string `json:"status"`
-	Priority  int    `json:"priority"`
-	CreatedAt string `json:"createdAt"`
+	AdID      string    `json:"adId"`
+	Status    string    `json:"status"`
+	Priority  int       `json:"priority"`
+	CreatedAt time.Time `json:"createdAt"`
 }
 
 // AdAnalysis represents the analysis details of an ad
